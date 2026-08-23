@@ -32,6 +32,17 @@ final class VideoPlayer implements Renderable
     public function seekTo(int $milliseconds): self { return $this->with('positionMillis', max(0, $milliseconds)); }
     public function resizeMode(VideoResizeMode $mode): self { return $this->with('resizeMode', $mode->value); }
     public function progressEvery(int $milliseconds): self { return $this->with('progressIntervalMillis', max(100, min(10_000, $milliseconds))); }
+    public function playbackRate(float $rate): self { return $this->with('playbackRate', max(0.25, min(4.0, $rate))); }
+    public function preferredPeakBitRate(int $bitsPerSecond): self { return $this->with('preferredPeakBitRate', max(0, $bitsPerSecond)); }
+    public function preferredForwardBuffer(int $milliseconds): self { return $this->with('preferredForwardBufferMillis', max(0, min(120_000, $milliseconds))); }
+    public function subtitle(string $source): self { self::assertSource($source); return $this->with('subtitle', $source); }
+
+    public function drm(VideoDrmConfiguration $configuration): self
+    {
+        $copy = clone $this;
+        $copy->properties = [...$copy->properties, ...$configuration->properties()];
+        return $copy;
+    }
 
     /** @param Closure(VideoEventKind, array<string, string|int|float|bool>): void $handler */
     public function onEvent(Closure $handler): self { $copy = clone $this; $copy->eventHandler = $handler; return $copy; }
@@ -39,10 +50,11 @@ final class VideoPlayer implements Renderable
     public function toElement(): Element
     {
         $view = CustomView::make('video.player', $this->properties);
-        return $this->eventHandler === null ? $view : $view->onNativeEvent(function (string $payload): void {
+        $handler = $this->eventHandler;
+        return $handler === null ? $view : $view->onNativeEvent(function (string $payload) use ($handler): void {
             $values = Wire::decodeMap($payload);
             $kind = VideoEventKind::tryFrom((int) ($values['event'] ?? 1)) ?? VideoEventKind::State;
-            ($this->eventHandler)($kind, $values);
+            $handler($kind, $values);
         });
     }
 
