@@ -29,15 +29,23 @@ class VideoPlayerFactory(private val applicationContext: Context) : NativeViewFa
     private inner class PamVideoView(context: Context, private val emit: (ByteArray) -> Unit) : PlayerView(context), Player.Listener {
         private val exoPlayer = ExoPlayer.Builder(context).build()
         private var source = ""; private var subtitle = ""; private var seek = -1L; private var interval = 500L
+        private var currentValues: Map<String, WireValue> = emptyMap()
         private val ticker = object : Runnable { override fun run() { emitProgress(); postDelayed(this, interval) } }
         init { player = exoPlayer; exoPlayer.addListener(this); post(ticker) }
 
         fun update(values: Map<String, WireValue>) {
+            currentValues = values
             useController = values.flag("controls", true)
             exoPlayer.repeatMode = if (values.flag("loop", false)) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
             exoPlayer.volume = if (values.flag("muted", false)) 0f else values.decimal("volume", 1.0).toFloat().coerceIn(0f, 1f)
             resizeMode = when (values.integer("resizeMode", 1)) { 2L -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM; 3L -> AspectRatioFrameLayout.RESIZE_MODE_FILL; else -> AspectRatioFrameLayout.RESIZE_MODE_FIT }
             interval = values.integer("progressIntervalMillis", 500).coerceIn(100, 10_000)
+            exoPlayer.setPlaybackSpeed(values.decimal("playbackRate", 1.0).toFloat().coerceIn(0.25f, 4f))
+            val peakBitRate = values.integer("preferredPeakBitRate", 0).coerceAtLeast(0)
+            exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                .buildUpon()
+                .setMaxVideoBitrate(if (peakBitRate == 0L) Int.MAX_VALUE else peakBitRate.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+                .build()
             val nextSource = values.text("source"); val nextSubtitle = values.text("subtitle")
             if (nextSource != source || nextSubtitle != subtitle) {
                 source = nextSource; subtitle = nextSubtitle
@@ -50,6 +58,21 @@ class VideoPlayerFactory(private val applicationContext: Context) : NativeViewFa
 
         private fun mediaItem(source: String, subtitle: String): MediaItem {
             val builder = MediaItem.Builder().setUri(resolve(source))
+            val drmScheme = currentValues.integer("drmScheme", 0)
+            if (drmScheme != 0L) {
+                val uuid = when (drmScheme) {
+                    1L -> C.WIDEVINE_UUID
+                    3L -> C.CLEARKEY_UUID
+                    else -> throw IllegalArgumentException("The selected DRM scheme is not supported on Android")
+                }
+                val licenseUrl = currentValues.text("drmLicenseUrl")
+                require(licenseUrl.startsWith("https://")) { "DRM license URL must use HTTPS" }
+                val drm = MediaItem.DrmConfiguration.Builder(uuid).setLicenseUri(licenseUrl)
+                    .setMultiSession(currentValues.flag("drmMultiSession", false))
+                val authorization = currentValues.text("drmAuthorization")
+                if (authorization.isNotEmpty()) drm.setLicenseRequestHeaders(mapOf("Authorization" to authorization))
+                builder.setDrmConfiguration(drm.build())
+            }
             if (subtitle.isNotEmpty()) builder.setSubtitleConfigurations(listOf(MediaItem.SubtitleConfiguration.Builder(resolve(subtitle)).setMimeType(subtitleMime(subtitle)).setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build()))
             return builder.build()
         }

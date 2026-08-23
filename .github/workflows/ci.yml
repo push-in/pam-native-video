@@ -18,7 +18,7 @@ jobs:
       matrix:
         php: ['8.5']
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
@@ -30,8 +30,11 @@ jobs:
         run: composer update --prefer-dist --no-interaction --no-progress
       - name: Run package contracts
         run: |
-          if [ -f tests/run.php ]; then
-            php -d auto_prepend_file=vendor/autoload.php tests/run.php
-          else
-            composer test
-          fi
+          php -d auto_prepend_file=vendor/autoload.php tests/run.php
+          vendor/bin/phpstan analyse --no-progress
+      - name: Validate manifests
+        run: |
+          jq empty pam-native.plugin.json pam-native.idl.json
+          vendor/bin/pam-native-plugin validate pam-native.plugin.json
+          vendor/bin/pam-native-plugin conformance . --json > conformance.json
+          jq -e '.resultCode == 1' conformance.json

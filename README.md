@@ -2,7 +2,7 @@
 
 ## Start here
 
-This is a Composer extension for PAM Native. Install the PAM Runtime, create a native project, and then add this package through PAM’s verified Composer toolchain:
+Install PAM first, initialize a native application, and then add only the playback capability:
 
 ```bash
 curl --proto '=https' --proto-redir '=https' --tlsv1.2 \
@@ -15,6 +15,8 @@ pam composer require pushinbr/pam-native-video
 pam doctor --fix
 ```
 
+This package is a horizontal playback primitive. It does not install a feed, social network, or
+streaming application template.
 
 Adaptive HLS/DASH and local video playback through Android Media3 and Apple AVPlayer. Decoder, buffering, controls and progress timing remain native rather than crossing the PHP bridge per frame.
 
@@ -34,9 +36,30 @@ return VideoPlayer::make('https://cdn.example.com/master.m3u8')
     ->onEvent(function ($kind, array $event): void {});
 ```
 
+Protected playback supports Widevine and ClearKey on Android and FairPlay on iOS. License exchange
+runs inside the native player and credentials should always be short-lived.
+
+```php
+use Pam\Native\Video\VideoDrmConfiguration;
+use Pam\Native\Video\VideoDrmScheme;
+use Pam\Native\Video\VideoPlayer;
+
+return VideoPlayer::make('https://cdn.example.com/movie/master.m3u8')
+    ->drm(new VideoDrmConfiguration(
+        scheme: VideoDrmScheme::FairPlay,
+        licenseUrl: 'https://license.example.com/fps',
+        authorization: 'Bearer '.$shortLivedToken,
+        contentId: 'movie-42',
+        certificateUrl: 'https://license.example.com/fairplay.cer',
+    ))
+    ->subtitle('https://cdn.example.com/subtitles/pt-BR.vtt')
+    ->preferredForwardBuffer(15_000)
+    ->autoPlay();
+```
+
 Features include adaptive HLS/DASH playback, embedded subtitle/audio tracks, native controls, autoplay, looping, mute/volume, deterministic seek commands, configurable progress events and sandboxed local files. Android dependencies are pinned to Media3 `1.9.3`; iOS uses AVFoundation/AVKit.
 
-Platform support: Android API 26+, iOS 15+, PAM Native 0.6.x.
+Platform support: Android API 26+, iOS 15+, PAM Native 0.8.x.
 
 
 ## What installation does
@@ -73,7 +96,7 @@ All coded states, kinds, and variants are sequential integer-backed enums. Use e
 
 ## Compatibility and support
 
-This package targets PAM Native `0.6.x`, Android API 26+, and iOS 15+ unless a platform-specific section above states a stricter requirement. Platform SDKs, credentials, entitlements, physical hardware, and store configuration remain application responsibilities.
+This package targets PAM Native `0.8.x`, Android API 26+, and iOS 15+ unless a platform-specific section above states a stricter requirement. Platform SDKs, credentials, entitlements, physical hardware, and store configuration remain application responsibilities.
 
 - [PAM documentation](https://push-in.github.io/pam-docs/introduction/)
 - [PAM Native overview](https://push-in.github.io/pam-docs/native/overview/)
