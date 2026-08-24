@@ -21,8 +21,8 @@ streaming application template.
 Adaptive HLS/DASH and local video playback through Android Media3 and Apple AVPlayer. Decoder, buffering, controls and progress timing remain native rather than crossing the PHP bridge per frame.
 
 ```bash
-pam add video
-pam doctor
+pam composer require pushinbr/pam-native-video
+pam doctor --fix
 ```
 
 ```php
@@ -64,9 +64,9 @@ Platform support: Android API 26+, iOS 15+, PAM Native 0.8.x.
 
 ## What installation does
 
-`pam add video` resolves the official compatible package, performs a non-mutating Composer preflight, updates the normal `composer.json` and `composer.lock`, refreshes generated native integration when required, and leaves the project ready for `pam doctor` validation.
+`pam composer require pushinbr/pam-native-video` installs the package through the project's normal `composer.json` and `composer.lock`. Run `pam doctor --fix` afterward to validate the environment and regenerate native integration when required.
 
-Use `pam packages` to inspect availability and `pam remove video` to uninstall the capability safely. Direct Composer commands are an advanced interoperability path; PAM is the supported application workflow.
+Use `pam packages` to inspect direct installed Composer dependencies and `pam composer remove pushinbr/pam-native-video` to uninstall the capability.
 
 ## API guide
 
