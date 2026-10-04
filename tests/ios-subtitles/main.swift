@@ -41,6 +41,19 @@ let ttml = Data("""
 """.utf8)
 let timedText = try ExternalSubtitles(data: ttml, pathExtension: "ttml")
 precondition(timedText.text(at: 1_200) == "Olá\nTTML")
+let entity = Data("""
+<!DOCTYPE tt [<!ENTITY expanded "Unsafe">]>
+<tt><body><p begin="00:00:01.000" end="00:00:02.000">&expanded;</p></body></tt>
+""".utf8)
+do {
+    _ = try ExternalSubtitles(data: entity, pathExtension: "ttml")
+    fatalError("Accepted TTML entity declaration")
+} catch {}
+let longCue = Data("<tt><body><p begin=\"00:00:01.000\" end=\"00:00:02.000\">\(String(repeating: "a", count: 2049))</p></body></tt>".utf8)
+do {
+    _ = try ExternalSubtitles(data: longCue, pathExtension: "ttml")
+    fatalError("Accepted oversized TTML cue")
+} catch {}
 do {
     _ = try ExternalSubtitles(data: Data(repeating: 0, count: ExternalSubtitles.maximumBytes + 1), pathExtension: "vtt")
     fatalError("Accepted oversized subtitle")
@@ -66,4 +79,4 @@ for rejected in ["../outside/pt.vtt", "linked/pt.vtt", "/tmp/pt.vtt"] {
     } catch {}
 }
 
-print("15 iOS subtitle, time and sandbox checks passed")
+print("17 iOS subtitle, time and sandbox checks passed")

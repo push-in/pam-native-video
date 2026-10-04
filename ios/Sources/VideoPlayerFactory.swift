@@ -135,8 +135,14 @@ private final class VideoContainerView: UIView, @unchecked Sendable {
         guard !value.isEmpty else { return }
         let url: URL
         do {
-            if value.hasPrefix("https://"), let remote = URL(string: value) { url = remote }
-            else { url = try sandboxURL(value) }
+            if value.hasPrefix("https://") {
+                guard let remote = URL(string: value), remote.scheme == "https", remote.host != nil else {
+                    throw SubtitleError.invalidURL
+                }
+                url = remote
+            } else {
+                url = try sandboxURL(value)
+            }
         } catch {
             subtitleFailure("Invalid subtitle source")
             return
@@ -185,7 +191,10 @@ private final class VideoContainerView: UIView, @unchecked Sendable {
         fairPlay = nil
         let url: URL
         if source.hasPrefix("https://") {
-            guard let remote = URL(string: source) else { failure("Invalid video URL"); return }
+            guard let remote = URL(string: source), remote.scheme == "https", remote.host != nil else {
+                failure("Invalid video URL")
+                return
+            }
             url = remote
         } else {
             do { url = try sandboxURL(source) }

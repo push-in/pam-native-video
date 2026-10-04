@@ -20,7 +20,12 @@ struct ExternalSubtitles: Sendable {
         let parsed: [SubtitleCue]
         switch pathExtension.lowercased() {
         case "vtt", "srt": parsed = Self.parseText(source)
-        case "ttml", "xml": parsed = try Self.parseTTML(data)
+        case "ttml", "xml":
+            guard source.range(of: "<!DOCTYPE", options: .caseInsensitive) == nil,
+                  source.range(of: "<!ENTITY", options: .caseInsensitive) == nil else {
+                throw SubtitleError.invalidCues
+            }
+            parsed = try Self.parseTTML(data)
         default: throw SubtitleError.unsupportedFormat
         }
         guard !parsed.isEmpty, parsed.count <= Self.maximumCues else { throw SubtitleError.invalidCues }
@@ -57,6 +62,7 @@ struct ExternalSubtitles: Sendable {
             defer { try? handle.close() }
             var buffer = Data()
             while buffer.count <= maximumBytes {
+                if Task.isCancelled { throw CancellationError() }
                 let count = min(64 * 1024, maximumBytes + 1 - buffer.count)
                 let chunk = try handle.read(upToCount: count) ?? Data()
                 if chunk.isEmpty { break }
@@ -177,7 +183,12 @@ private final class TTMLCueParser: NSObject, XMLParserDelegate {
     }
 
     func parser(_ parser: XMLParser, foundCharacters string: String) {
-        if start != nil { content += string }
+        guard start != nil else { return }
+        guard content.utf8.count + string.utf8.count <= 2048 else {
+            parser.abortParsing()
+            return
+        }
+        content += string
     }
 
     func parser(_ parser: XMLParser, didEndElement elementName: String, namespaceURI: String?,
@@ -186,7 +197,8 @@ private final class TTMLCueParser: NSObject, XMLParserDelegate {
         defer { start = nil; end = nil; content = "" }
         guard let start, let end, end > start else { return }
         let text = String(content.trimmingCharacters(in: .whitespacesAndNewlines).prefix(2048))
-        guard !text.isEmpty, cues.count < ExternalSubtitles.maximumCues else { return }
+        guard !text.isEmpty else { return }
+        guard cues.count < ExternalSubtitles.maximumCues else { parser.abortParsing(); return }
         cues.append(SubtitleCue(startMillis: start, endMillis: end, text: text))
     }
 }
