@@ -10,6 +10,20 @@ permissions:
   contents: read
 
 jobs:
+  ios-subtitles:
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run bounded subtitle and sandbox checks
+        run: |
+          xcrun swiftc \
+            ios/Sources/ExternalSubtitles.swift \
+            ios/Sources/VideoSafety.swift \
+            tests/ios-subtitles/main.swift \
+            -o "$RUNNER_TEMP/pam-video-ios-check"
+          "$RUNNER_TEMP/pam-video-ios-check"
+
   php:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
