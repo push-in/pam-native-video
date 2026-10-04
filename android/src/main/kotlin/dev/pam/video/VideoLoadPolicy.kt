@@ -8,20 +8,23 @@ internal data class VideoLoadRequest(
     val drmAuthorization: String = "",
     val drmMultiSession: Boolean = false,
 ) {
-    fun transitionFrom(previous: VideoLoadRequest): VideoLoadTransition {
+    fun transitionFrom(previous: VideoLoadRequest, lastFailed: VideoLoadRequest? = null): VideoLoadTransition {
         if (source.isEmpty()) {
             return if (previous.source.isEmpty()) VideoLoadTransition.UNCHANGED else VideoLoadTransition.CLEAR
         }
-        val mediaUnchanged = source == previous.source &&
-            subtitle == previous.subtitle &&
-            drmScheme == previous.drmScheme &&
-            (drmScheme == 0L || (
-                drmLicenseUrl == previous.drmLicenseUrl &&
-                    drmAuthorization == previous.drmAuthorization &&
-                    drmMultiSession == previous.drmMultiSession
-                ))
-        return if (mediaUnchanged) VideoLoadTransition.UNCHANGED else VideoLoadTransition.LOAD
+        if (lastFailed != null && sameMediaAs(lastFailed)) return VideoLoadTransition.UNCHANGED
+        return if (sameMediaAs(previous)) VideoLoadTransition.UNCHANGED else VideoLoadTransition.LOAD
     }
+
+    private fun sameMediaAs(other: VideoLoadRequest): Boolean =
+        source == other.source &&
+            subtitle == other.subtitle &&
+            drmScheme == other.drmScheme &&
+            (drmScheme == 0L || (
+                drmLicenseUrl == other.drmLicenseUrl &&
+                    drmAuthorization == other.drmAuthorization &&
+                    drmMultiSession == other.drmMultiSession
+                ))
 }
 
 internal enum class VideoLoadTransition { UNCHANGED, LOAD, CLEAR }

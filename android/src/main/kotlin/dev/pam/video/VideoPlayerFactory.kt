@@ -29,6 +29,7 @@ class VideoPlayerFactory(private val applicationContext: Context) : NativeViewFa
     private inner class PamVideoView(context: Context, private val emit: (ByteArray) -> Unit) : PlayerView(context), Player.Listener {
         private val exoPlayer = ExoPlayer.Builder(context).build()
         private var loadedRequest = VideoLoadRequest()
+        private var lastFailedRequest: VideoLoadRequest? = null
         private var seek = -1L; private var interval = 500L
         private val ticker = object : Runnable { override fun run() { emitProgress(); postDelayed(this, interval) } }
         init { player = exoPlayer; exoPlayer.addListener(this); post(ticker) }
@@ -53,18 +54,21 @@ class VideoPlayerFactory(private val applicationContext: Context) : NativeViewFa
                 drmAuthorization = values.text("drmAuthorization"),
                 drmMultiSession = values.flag("drmMultiSession", false),
             )
-            when (request.transitionFrom(loadedRequest)) {
+            if (request.source.isEmpty()) lastFailedRequest = null
+            when (request.transitionFrom(loadedRequest, lastFailedRequest)) {
                 VideoLoadTransition.LOAD -> {
                     try {
                         val item = mediaItem(request)
                         exoPlayer.setMediaItem(item)
                         exoPlayer.prepare()
                         loadedRequest = request
+                        lastFailedRequest = null
                         seek = -1L
                     } catch (error: Exception) {
                         exoPlayer.stop()
                         exoPlayer.clearMediaItems()
                         loadedRequest = VideoLoadRequest()
+                        lastFailedRequest = request
                         seek = -1L
                         emit(mapOf("event" to WireValue.Integer(3), "state" to WireValue.Integer(5), "message" to WireValue.Text(error.message.orEmpty())))
                     }
