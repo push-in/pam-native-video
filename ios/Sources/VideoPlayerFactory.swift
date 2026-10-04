@@ -61,7 +61,14 @@ private final class VideoContainerView: UIView, @unchecked Sendable {
         guard !released else { return }
         let nextSource = values.text("source")
         let nextDrmScheme = values.integer("drmScheme", 0)
-        let nextRequest = VideoLoadRequest(source: nextSource, drmScheme: nextDrmScheme)
+        let nextRequest = VideoLoadRequest(
+            source: nextSource,
+            drmScheme: nextDrmScheme,
+            drmCertificateUrl: values.text("drmCertificateUrl"),
+            drmLicenseUrl: values.text("drmLicenseUrl"),
+            drmContentId: values.text("drmContentId"),
+            drmAuthorization: values.text("drmAuthorization")
+        )
         let transition = nextRequest.transition(from: loadRequest)
         let sourceChanged = transition != .unchanged
         if sourceChanged {

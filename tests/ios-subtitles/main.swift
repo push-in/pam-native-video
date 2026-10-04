@@ -73,6 +73,52 @@ let protectedVideo = VideoLoadRequest(source: "https://cdn.example.test/a.m3u8",
 precondition(protectedVideo.transition(from: emptyVideo) == .load)
 precondition(VideoLoadRequest(source: protectedVideo.source, drmScheme: 1).transition(from: protectedVideo) == .load)
 precondition(emptyVideo.transition(from: protectedVideo) == .clear)
+let fairPlayVideo = VideoLoadRequest(
+    source: protectedVideo.source,
+    drmScheme: PamVideoDrmScheme.fairPlay.rawValue,
+    drmCertificateUrl: "https://license.example.test/certificate",
+    drmLicenseUrl: "https://license.example.test/key",
+    drmContentId: "movie-1",
+    drmAuthorization: "Bearer original"
+)
+precondition(fairPlayVideo.transition(from: protectedVideo) == .load)
+precondition(fairPlayVideo.transition(from: fairPlayVideo) == .unchanged)
+let changedCertificate = VideoLoadRequest(
+    source: fairPlayVideo.source, drmScheme: 2,
+    drmCertificateUrl: "https://license.example.test/new",
+    drmLicenseUrl: fairPlayVideo.drmLicenseUrl,
+    drmContentId: fairPlayVideo.drmContentId,
+    drmAuthorization: fairPlayVideo.drmAuthorization
+)
+let changedLicense = VideoLoadRequest(
+    source: fairPlayVideo.source, drmScheme: 2,
+    drmCertificateUrl: fairPlayVideo.drmCertificateUrl,
+    drmLicenseUrl: "https://license.example.test/new",
+    drmContentId: fairPlayVideo.drmContentId,
+    drmAuthorization: fairPlayVideo.drmAuthorization
+)
+let changedContentId = VideoLoadRequest(
+    source: fairPlayVideo.source, drmScheme: 2,
+    drmCertificateUrl: fairPlayVideo.drmCertificateUrl,
+    drmLicenseUrl: fairPlayVideo.drmLicenseUrl,
+    drmContentId: "movie-2",
+    drmAuthorization: fairPlayVideo.drmAuthorization
+)
+let changedAuthorization = VideoLoadRequest(
+    source: fairPlayVideo.source, drmScheme: 2,
+    drmCertificateUrl: fairPlayVideo.drmCertificateUrl,
+    drmLicenseUrl: fairPlayVideo.drmLicenseUrl,
+    drmContentId: fairPlayVideo.drmContentId,
+    drmAuthorization: "Bearer renewed"
+)
+for changed in [changedCertificate, changedLicense, changedContentId, changedAuthorization] {
+    precondition(changed.transition(from: fairPlayVideo) == .load)
+}
+let unprotectedVideo = VideoLoadRequest(source: fairPlayVideo.source, drmScheme: 0)
+precondition(VideoLoadRequest(source: fairPlayVideo.source, drmScheme: 0, drmAuthorization: "unused")
+    .transition(from: unprotectedVideo) == .unchanged)
+precondition(VideoLoadRequest(source: "", drmScheme: 2, drmAuthorization: "unused")
+    .transition(from: emptyVideo) == .unchanged)
 
 let testRoot = FileManager.default.temporaryDirectory.appendingPathComponent("pam-video-path-\(UUID().uuidString)")
 let sandbox = testRoot.appendingPathComponent("sandbox")
@@ -90,4 +136,4 @@ for rejected in ["../outside/pt.vtt", "linked/pt.vtt", "/tmp/pt.vtt"] {
     } catch {}
 }
 
-print("26 iOS subtitle, DRM, time and sandbox checks passed")
+print("34 iOS subtitle, DRM, time and sandbox checks passed")
