@@ -5,7 +5,7 @@
 
 **Adaptive streaming and native playback for serious media apps.**
 
-Play HLS/DASH media, subtitles, tracks, DRM-ready sources, and picture-in-picture while decode and rendering stay native.
+Play HLS on iOS, HLS/DASH on Android, subtitles, tracks, DRM-ready sources, and picture-in-picture while decode and rendering stay native.
 
 [![Latest version](https://img.shields.io/packagist/v/pushinbr/pam-native-video?style=flat-square&label=stable)](https://packagist.org/packages/pushinbr/pam-native-video)
 [![CI](https://img.shields.io/github/actions/workflow/status/push-in/pam-native-video/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/push-in/pam-native-video/actions)
@@ -21,7 +21,7 @@ Play HLS/DASH media, subtitles, tracks, DRM-ready sources, and picture-in-pictur
 
 ## Why PAM Native Video
 
-Play HLS/DASH media, subtitles, tracks, DRM-ready sources, and picture-in-picture while decode and rendering stay native. The public API is strictly typed for PHP 8.5; expensive or frame-sensitive work stays in Rust or the platform SDK instead of crossing the application boundary every frame.
+Play HLS on iOS, HLS/DASH on Android, subtitles, tracks, DRM-ready sources, and picture-in-picture while decode and rendering stay native. The public API is strictly typed for PHP 8.5; expensive or frame-sensitive work stays in Rust or the platform SDK instead of crossing the application boundary every frame.
 
 | | |
 | --- | --- |
@@ -53,7 +53,7 @@ New to PAM? Follow the **[five-minute PAM Native setup](https://push-in.github.i
 This package is a horizontal playback primitive. It does not install a feed, social network, or
 streaming application template.
 
-Adaptive HLS/DASH and local video playback through Android Media3 and Apple AVPlayer. Decoder, buffering, controls and progress timing remain native rather than crossing the PHP bridge per frame.
+Adaptive HLS and local video playback through Android Media3 and Apple AVPlayer; Android also supports DASH. Decoder, buffering, controls and progress timing remain native rather than crossing the PHP bridge per frame.
 
 ```bash
 pam composer require pushinbr/pam-native-video
@@ -92,9 +92,11 @@ return VideoPlayer::make('https://cdn.example.com/movie/master.m3u8')
     ->autoPlay();
 ```
 
-Features include adaptive HLS/DASH playback, embedded subtitle/audio tracks, native controls, autoplay, looping, mute/volume, deterministic seek commands, configurable progress events and sandboxed local files. Android dependencies are pinned to Media3 `1.9.3`; iOS uses AVFoundation/AVKit.
+Features include adaptive HLS playback, embedded subtitle/audio tracks, native controls, autoplay, looping, mute/volume, deterministic seek commands, configurable progress events and sandboxed local files. Android also supports DASH. External WebVTT, SRT and TTML subtitles are supported on both platforms; iOS loads at most 2 MiB and displays them in the AVKit content overlay. Embedded subtitles retain the platform's native track selection. Android dependencies are pinned to Media3 `1.9.3`; iOS uses AVFoundation/AVKit.
 
-Platform support: Android API 26+, iOS 15+, PAM Native 0.8.x.
+On macOS, run the focused subtitle, time and sandbox checks with `swiftc ios/Sources/ExternalSubtitles.swift ios/Sources/VideoSafety.swift tests/ios-subtitles/main.swift -o /tmp/pam-video-ios-check && /tmp/pam-video-ios-check`.
+
+Platform support: Android API 26+, iOS 15+, PAM Native 0.8–1.x.
 
 ## What installation does
 
@@ -115,7 +117,7 @@ All coded states, kinds, and variants are sequential integer-backed enums. Use e
 
 ## Production checklist
 
-- Prefer adaptive HLS/DASH for variable networks.
+- Prefer adaptive HLS for both platforms; use DASH only for Android.
 - Keep progress intervals coarse enough for the product experience.
 - Pause or release playback when the owning screen loses visibility.
 - Run `pam doctor`, `pam test`, and a signed release build on every supported platform.
@@ -125,12 +127,12 @@ All coded states, kinds, and variants are sequential integer-backed enums. Use e
 
 - **Remote playback fails:** verify HTTPS, codec, manifest, and segment accessibility.
 - **Seek appears ignored:** issue it as an intentional state revision, not every render.
-- **Subtitles are absent:** inspect the manifest track and selected native language.
+- **Subtitles are absent:** inspect the embedded track, or check the external subtitle URL, format and 2 MiB iOS size limit.
 - **Native integration is stale:** run `pam doctor --fix`, rebuild the native host, and inspect the first reported diagnostic.
 
 ## Compatibility and support
 
-This package targets PAM Native `0.8.x`, Android API 26+, and iOS 15+ unless a platform-specific section above states a stricter requirement. Platform SDKs, credentials, entitlements, physical hardware, and store configuration remain application responsibilities.
+This package targets PAM Native `0.8–1.x`, Android API 26+, and iOS 15+ unless a platform-specific section above states a stricter requirement. Platform SDKs, credentials, entitlements, physical hardware, and store configuration remain application responsibilities.
 
 - [PAM documentation](https://push-in.github.io/pam-docs/introduction/)
 - [PAM Native overview](https://push-in.github.io/pam-docs/native/overview/)
