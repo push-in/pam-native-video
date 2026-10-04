@@ -71,8 +71,7 @@ return VideoPlayer::make('https://cdn.example.com/master.m3u8')
     ->onEvent(function ($kind, array $event): void {});
 ```
 
-Protected playback supports Widevine and ClearKey on Android and FairPlay on iOS. License exchange
-runs inside the native player and credentials should always be short-lived.
+Protected playback supports Widevine and ClearKey on Android and FairPlay on iOS. An incompatible DRM scheme produces a native playback error instead of silently playing without DRM. License exchange runs inside the native player; credentials should be short-lived.
 
 ```php
 use Pam\Native\Video\VideoDrmConfiguration;

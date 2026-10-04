@@ -17,7 +17,7 @@ private final class VideoContainerView: UIView, @unchecked Sendable {
     private let emit: (Data) -> Void
     private let subtitleBackground = UIView()
     private let subtitleLabel = UILabel()
-    private var source = ""
+    private var loadRequest = VideoLoadRequest.empty
     private var subtitle = ""
     private var subtitleTrack: ExternalSubtitles?
     private var subtitleTask: Task<Void, Never>?
@@ -60,10 +60,20 @@ private final class VideoContainerView: UIView, @unchecked Sendable {
     func update(_ values: [String: WireValue]) {
         guard !released else { return }
         let nextSource = values.text("source")
-        let sourceChanged = nextSource != source
+        let nextDrmScheme = values.integer("drmScheme", 0)
+        let nextRequest = VideoLoadRequest(source: nextSource, drmScheme: nextDrmScheme)
+        let transition = nextRequest.transition(from: loadRequest)
+        let sourceChanged = transition != .unchanged
         if sourceChanged {
-            source = nextSource
+            loadRequest = nextRequest
+        }
+        if transition == .load {
             load(nextSource, values)
+        } else if transition == .clear {
+            statusObservation = nil
+            fairPlay = nil
+            player.pause()
+            player.replaceCurrentItem(with: nil)
         }
         let nextSubtitle = values.text("subtitle")
         if nextSubtitle != subtitle {
@@ -189,6 +199,11 @@ private final class VideoContainerView: UIView, @unchecked Sendable {
         statusObservation = nil
         player.replaceCurrentItem(with: nil)
         fairPlay = nil
+        let drmScheme = values.integer("drmScheme", 0)
+        if let message = VideoDrmPolicy.failureMessage(for: drmScheme) {
+            failure(message)
+            return
+        }
         let url: URL
         if source.hasPrefix("https://") {
             guard let remote = URL(string: source), remote.scheme == "https", remote.host != nil else {
@@ -201,7 +216,7 @@ private final class VideoContainerView: UIView, @unchecked Sendable {
             catch { failure(String(describing: error)); return }
         }
         let item: AVPlayerItem
-        if values.integer("drmScheme", 0) == 2 {
+        if drmScheme == PamVideoDrmScheme.fairPlay.rawValue {
             guard let certificate = URL(string: values.text("drmCertificateUrl")),
                   let license = URL(string: values.text("drmLicenseUrl")),
                   certificate.scheme == "https", license.scheme == "https",
