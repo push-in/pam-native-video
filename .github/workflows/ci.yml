@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  ios-subtitles:
+  ios-subtitles-and-drm:
     runs-on: macos-15
     timeout-minutes: 10
     steps:
@@ -20,6 +20,7 @@ jobs:
           xcrun swiftc \
             ios/Sources/ExternalSubtitles.swift \
             ios/Sources/VideoSafety.swift \
+            ios/Sources/VideoDrmPolicy.swift \
             tests/ios-subtitles/main.swift \
             -o "$RUNNER_TEMP/pam-video-ios-check"
           "$RUNNER_TEMP/pam-video-ios-check"

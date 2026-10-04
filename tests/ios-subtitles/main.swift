@@ -62,6 +62,11 @@ do {
 precondition(VideoTime.milliseconds(.nan) == 0)
 precondition(VideoTime.milliseconds(.infinity) == 0)
 precondition(VideoTime.milliseconds(1.5) == 1_500)
+precondition(VideoDrmPolicy.failureMessage(for: 0) == nil)
+precondition(VideoDrmPolicy.failureMessage(for: PamVideoDrmScheme.fairPlay.rawValue) == nil)
+precondition(VideoDrmPolicy.failureMessage(for: PamVideoDrmScheme.widevine.rawValue) != nil)
+precondition(VideoDrmPolicy.failureMessage(for: PamVideoDrmScheme.clearKey.rawValue) != nil)
+precondition(VideoDrmPolicy.failureMessage(for: 99) != nil)
 
 let testRoot = FileManager.default.temporaryDirectory.appendingPathComponent("pam-video-path-\(UUID().uuidString)")
 let sandbox = testRoot.appendingPathComponent("sandbox")
@@ -79,4 +84,4 @@ for rejected in ["../outside/pt.vtt", "linked/pt.vtt", "/tmp/pt.vtt"] {
     } catch {}
 }
 
-print("17 iOS subtitle, time and sandbox checks passed")
+print("22 iOS subtitle, DRM, time and sandbox checks passed")
