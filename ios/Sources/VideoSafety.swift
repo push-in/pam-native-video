@@ -15,8 +15,14 @@ enum VideoSandboxPath {
             throw VideoSafetyError.invalidPath
         }
         let root = rootURL.standardizedFileURL.resolvingSymlinksInPath()
-        let target = root.appendingPathComponent(path).standardizedFileURL.resolvingSymlinksInPath()
-        guard target.path.hasPrefix(root.path + "/") else { throw VideoSafetyError.invalidPath }
+        var target = root
+        for component in path.split(separator: "/", omittingEmptySubsequences: false) {
+            guard !component.isEmpty, component != ".", component != ".." else {
+                throw VideoSafetyError.invalidPath
+            }
+            target = target.appendingPathComponent(String(component)).resolvingSymlinksInPath()
+            guard target.path.hasPrefix(root.path + "/") else { throw VideoSafetyError.invalidPath }
+        }
         return target
     }
 }
