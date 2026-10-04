@@ -67,6 +67,12 @@ precondition(VideoDrmPolicy.failureMessage(for: PamVideoDrmScheme.fairPlay.rawVa
 precondition(VideoDrmPolicy.failureMessage(for: PamVideoDrmScheme.widevine.rawValue) != nil)
 precondition(VideoDrmPolicy.failureMessage(for: PamVideoDrmScheme.clearKey.rawValue) != nil)
 precondition(VideoDrmPolicy.failureMessage(for: 99) != nil)
+let emptyVideo = VideoLoadRequest.empty
+precondition(emptyVideo.transition(from: .empty) == .unchanged)
+let protectedVideo = VideoLoadRequest(source: "https://cdn.example.test/a.m3u8", drmScheme: 2)
+precondition(protectedVideo.transition(from: emptyVideo) == .load)
+precondition(VideoLoadRequest(source: protectedVideo.source, drmScheme: 1).transition(from: protectedVideo) == .load)
+precondition(emptyVideo.transition(from: protectedVideo) == .clear)
 
 let testRoot = FileManager.default.temporaryDirectory.appendingPathComponent("pam-video-path-\(UUID().uuidString)")
 let sandbox = testRoot.appendingPathComponent("sandbox")
@@ -84,4 +90,4 @@ for rejected in ["../outside/pt.vtt", "linked/pt.vtt", "/tmp/pt.vtt"] {
     } catch {}
 }
 
-print("22 iOS subtitle, DRM, time and sandbox checks passed")
+print("26 iOS subtitle, DRM, time and sandbox checks passed")

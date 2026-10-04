@@ -17,8 +17,7 @@ private final class VideoContainerView: UIView, @unchecked Sendable {
     private let emit: (Data) -> Void
     private let subtitleBackground = UIView()
     private let subtitleLabel = UILabel()
-    private var source = ""
-    private var requestedDrmScheme: Int64?
+    private var loadRequest = VideoLoadRequest.empty
     private var subtitle = ""
     private var subtitleTrack: ExternalSubtitles?
     private var subtitleTask: Task<Void, Never>?
@@ -62,11 +61,19 @@ private final class VideoContainerView: UIView, @unchecked Sendable {
         guard !released else { return }
         let nextSource = values.text("source")
         let nextDrmScheme = values.integer("drmScheme", 0)
-        let sourceChanged = nextSource != source || requestedDrmScheme != nextDrmScheme
+        let nextRequest = VideoLoadRequest(source: nextSource, drmScheme: nextDrmScheme)
+        let transition = nextRequest.transition(from: loadRequest)
+        let sourceChanged = transition != .unchanged
         if sourceChanged {
-            source = nextSource
-            requestedDrmScheme = nextDrmScheme
+            loadRequest = nextRequest
+        }
+        if transition == .load {
             load(nextSource, values)
+        } else if transition == .clear {
+            statusObservation = nil
+            fairPlay = nil
+            player.pause()
+            player.replaceCurrentItem(with: nil)
         }
         let nextSubtitle = values.text("subtitle")
         if nextSubtitle != subtitle {

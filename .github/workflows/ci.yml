@@ -21,6 +21,7 @@ jobs:
             ios/Sources/ExternalSubtitles.swift \
             ios/Sources/VideoSafety.swift \
             ios/Sources/VideoDrmPolicy.swift \
+            ios/Sources/VideoLoadPolicy.swift \
             tests/ios-subtitles/main.swift \
             -o "$RUNNER_TEMP/pam-video-ios-check"
           "$RUNNER_TEMP/pam-video-ios-check"
