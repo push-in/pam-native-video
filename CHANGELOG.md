@@ -6,6 +6,7 @@
 - Resolve each local video and subtitle path component before accepting it inside the iOS application sandbox. Reject XML entity declarations in TTML and require a successful HTTPS response for remote subtitles.
 - Reuse the iOS progress observer when the interval does not change and handle indefinite or invalid playback times without integer conversion crashes.
 - Reject unsupported DRM schemes on iOS with a native playback error; changing the scheme reloads the player, while an initial empty source stays idle.
+- Recreate the iOS FairPlay player item when its certificate URL, license URL, content ID or authorization changes.
 - Reload Android media when DRM settings change, clear playback when the source becomes empty, and suppress repeated errors for the same invalid media request.
 - Support PAM Native 1.x while retaining the existing 0.8–0.10 compatibility ranges. Document HLS support on both platforms and DASH support on Android.
 - Add focused macOS Swift checks for subtitle parsing, size limits, invalid player times and sandbox paths, plus Android Kotlin load-policy checks.
