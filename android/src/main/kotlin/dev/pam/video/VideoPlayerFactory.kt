@@ -28,13 +28,13 @@ class VideoPlayerFactory(private val applicationContext: Context) : NativeViewFa
 
     private inner class PamVideoView(context: Context, private val emit: (ByteArray) -> Unit) : PlayerView(context), Player.Listener {
         private val exoPlayer = ExoPlayer.Builder(context).build()
-        private var source = ""; private var subtitle = ""; private var seek = -1L; private var interval = 500L
-        private var currentValues: Map<String, WireValue> = emptyMap()
+        private var loadedRequest = VideoLoadRequest()
+        private var lastFailedRequest: VideoLoadRequest? = null
+        private var seek = -1L; private var interval = 500L
         private val ticker = object : Runnable { override fun run() { emitProgress(); postDelayed(this, interval) } }
         init { player = exoPlayer; exoPlayer.addListener(this); post(ticker) }
 
         fun update(values: Map<String, WireValue>) {
-            currentValues = values
             useController = values.flag("controls", true)
             exoPlayer.repeatMode = if (values.flag("loop", false)) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
             exoPlayer.volume = if (values.flag("muted", false)) 0f else values.decimal("volume", 1.0).toFloat().coerceIn(0f, 1f)
@@ -46,34 +46,67 @@ class VideoPlayerFactory(private val applicationContext: Context) : NativeViewFa
                 .buildUpon()
                 .setMaxVideoBitrate(if (peakBitRate == 0L) Int.MAX_VALUE else peakBitRate.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
                 .build()
-            val nextSource = values.text("source"); val nextSubtitle = values.text("subtitle")
-            if (nextSource != source || nextSubtitle != subtitle) {
-                source = nextSource; subtitle = nextSubtitle
-                exoPlayer.setMediaItem(mediaItem(source, subtitle)); exoPlayer.prepare()
+            val request = VideoLoadRequest(
+                source = values.text("source"),
+                subtitle = values.text("subtitle"),
+                drmScheme = values.integer("drmScheme", 0),
+                drmLicenseUrl = values.text("drmLicenseUrl"),
+                drmAuthorization = values.text("drmAuthorization"),
+                drmMultiSession = values.flag("drmMultiSession", false),
+            )
+            if (request.source.isEmpty()) lastFailedRequest = null
+            when (request.transitionFrom(loadedRequest, lastFailedRequest)) {
+                VideoLoadTransition.LOAD -> {
+                    try {
+                        val item = mediaItem(request)
+                        exoPlayer.setMediaItem(item)
+                        exoPlayer.prepare()
+                        loadedRequest = request
+                        lastFailedRequest = null
+                        seek = -1L
+                    } catch (error: Exception) {
+                        exoPlayer.stop()
+                        exoPlayer.clearMediaItems()
+                        loadedRequest = VideoLoadRequest()
+                        lastFailedRequest = request
+                        seek = -1L
+                        emit(mapOf("event" to WireValue.Integer(3), "state" to WireValue.Integer(5), "message" to WireValue.Text(error.message.orEmpty())))
+                    }
+                }
+                VideoLoadTransition.CLEAR -> {
+                    exoPlayer.stop()
+                    exoPlayer.clearMediaItems()
+                    loadedRequest = VideoLoadRequest()
+                    seek = -1L
+                }
+                VideoLoadTransition.UNCHANGED -> Unit
             }
             val requestedSeek = values.integer("positionMillis", 0)
-            if (requestedSeek != seek) { seek = requestedSeek; if (requestedSeek > 0) exoPlayer.seekTo(requestedSeek) }
-            exoPlayer.playWhenReady = values.flag("autoPlay", false)
+            if (request.source.isNotEmpty() && loadedRequest.source.isNotEmpty() && requestedSeek != seek) {
+                seek = requestedSeek
+                if (requestedSeek > 0) exoPlayer.seekTo(requestedSeek)
+            }
+            exoPlayer.playWhenReady = loadedRequest.source.isNotEmpty() && values.flag("autoPlay", false)
         }
 
-        private fun mediaItem(source: String, subtitle: String): MediaItem {
-            val builder = MediaItem.Builder().setUri(resolve(source))
-            val drmScheme = currentValues.integer("drmScheme", 0)
+        private fun mediaItem(request: VideoLoadRequest): MediaItem {
+            val builder = MediaItem.Builder().setUri(resolve(request.source))
+            val drmScheme = request.drmScheme
             if (drmScheme != 0L) {
                 val uuid = when (drmScheme) {
                     1L -> C.WIDEVINE_UUID
                     3L -> C.CLEARKEY_UUID
                     else -> throw IllegalArgumentException("The selected DRM scheme is not supported on Android")
                 }
-                val licenseUrl = currentValues.text("drmLicenseUrl")
+                val licenseUrl = request.drmLicenseUrl
                 require(licenseUrl.startsWith("https://")) { "DRM license URL must use HTTPS" }
                 val drm = MediaItem.DrmConfiguration.Builder(uuid).setLicenseUri(licenseUrl)
-                    .setMultiSession(currentValues.flag("drmMultiSession", false))
-                val authorization = currentValues.text("drmAuthorization")
+                    .setMultiSession(request.drmMultiSession)
+                val authorization = request.drmAuthorization
                 if (authorization.isNotEmpty()) drm.setLicenseRequestHeaders(mapOf("Authorization" to authorization))
                 builder.setDrmConfiguration(drm.build())
             }
-            if (subtitle.isNotEmpty()) builder.setSubtitleConfigurations(listOf(MediaItem.SubtitleConfiguration.Builder(resolve(subtitle)).setMimeType(subtitleMime(subtitle)).setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build()))
+            if (request.subtitle.isNotEmpty()) builder.setSubtitleConfigurations(listOf(MediaItem.SubtitleConfiguration.Builder(resolve(request.subtitle)).setMimeType(subtitleMime(request.subtitle)).setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build()))
             return builder.build()
         }
         private fun resolve(source:String):Uri = if(source.startsWith("https://")) Uri.parse(source) else Uri.fromFile(sandboxFile(source))
