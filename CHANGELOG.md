@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.4.0 - Unreleased
+## 0.4.0 - 2026-10-04
 
 - Render external WebVTT, SRT and TTML subtitles on iOS through the AVKit content overlay. Subtitle loading is asynchronous, cancellable, and limited to 2 MiB, 10,000 cues and 2,048 UTF-8 bytes per TTML cue.
 - Resolve each local video and subtitle path component before accepting it inside the iOS application sandbox. Reject XML entity declarations in TTML and require a successful HTTPS response for remote subtitles.

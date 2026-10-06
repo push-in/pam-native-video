@@ -61,6 +61,7 @@ pam doctor --fix
 ```
 
 ```php
+use Pam\Native\Video\VideoEventKind;
 use Pam\Native\Video\VideoPlayer;
 use Pam\Native\Video\VideoResizeMode;
 
@@ -68,7 +69,9 @@ return VideoPlayer::make('https://cdn.example.com/master.m3u8')
     ->autoPlay()
     ->controls()
     ->resizeMode(VideoResizeMode::Cover)
-    ->onEvent(function ($kind, array $event): void {});
+    ->onEvent(function (VideoEventKind $kind, array $event): void {
+        // Progress: $event['positionMillis'], ['durationMillis'], ['bufferedMillis'].
+    });
 ```
 
 Protected playback supports Widevine and ClearKey on Android and FairPlay on iOS. An incompatible DRM scheme produces a native playback error instead of silently playing without DRM. License exchange runs inside the native player; credentials should be short-lived.
@@ -99,20 +102,73 @@ Platform support: Android API 26+, iOS 15+, PAM Native 0.8–1.x.
 
 ## What installation does
 
-`pam composer require pushinbr/pam-native-video` installs the package through the project's normal `composer.json` and `composer.lock`. Run `pam doctor --fix` afterward to validate the environment and regenerate native integration when required.
+`pam composer require pushinbr/pam-native-video` installs the package through the project's normal `composer.json` and `composer.lock`. Run `pam doctor --fix` afterward to validate the environment and regenerate native integration when required. The package is a PAM Native plugin with one native view (`video.player`); nothing is added to `pam-native.json`.
 
 Use `pam packages` to inspect direct installed Composer dependencies and `pam composer remove pushinbr/pam-native-video` to uninstall the capability.
 
-## API guide
+- **Android:** no permissions besides network access. Dependencies:
+  `androidx.media3:media3-exoplayer`, `-exoplayer-dash`, `-exoplayer-hls` and
+  `-ui` `1.9.3`. When `pam-native-media`, `pam-native-audio` or
+  `pam-native-media-editor` (Media3 `1.10.1`) are installed too, Gradle
+  resolves every Media3 artifact to the newest requested version.
+- **iOS:** frameworks `AVFoundation` and `AVKit`; no Info.plist keys. FairPlay
+  needs a certificate and license server of your own.
 
-| API | Responsibility |
+## When to use it
+
+The PAM Native core already ships `<MediaPlayer>` (`Pam\Native\UI\MediaPlayer`)
+for feed, story and chat media; Zé Chat plays its gallery, story and editor
+videos with it. Add this package when you need what the core player does not
+do: DRM (Widevine, ClearKey, FairPlay), DASH on Android, external WebVTT/SRT/
+TTML subtitles, bitrate caps, forward-buffer tuning and native transport
+controls.
+
+## API reference
+
+All classes live in `Pam\Native\Video`.
+
+### `VideoPlayer` (`Renderable`, immutable)
+
+| Method | Description |
 | --- | --- |
-| `VideoPlayer` | Render and control native adaptive or local playback. |
-| `VideoResizeMode` | Choose contain, cover, or fill presentation. |
-| `VideoEventKind` | Handle prepared, progress, completion, and failure events. |
-| `VideoPlaybackState` | Track the normalized player lifecycle. |
+| `make(string $source)` | HTTPS URL (HLS, DASH on Android, progressive) or a relative sandbox path. |
+| `autoPlay(bool = true)`, `controls(bool = true)` (default on), `loop(bool = true)`, `muted(bool = true)`, `volume(float)` (0–1) | Playback. |
+| `seekTo(int $milliseconds)` | Seek command; a new value seeks once (keep it in state, do not recompute it every render). |
+| `resizeMode(VideoResizeMode)` | `Contain` (default), `Cover`, `Fill`. |
+| `progressEvery(int $milliseconds)` | Progress event interval, 100–10000 ms (default 500). |
+| `playbackRate(float)` | 0.25–4. |
+| `preferredPeakBitRate(int $bitsPerSecond)`, `preferredForwardBuffer(int $milliseconds)` (0–120000) | Adaptive streaming hints. |
+| `subtitle(string $source)` | External WebVTT, SRT or TTML (HTTPS or sandbox path). |
+| `drm(VideoDrmConfiguration)` | Protected playback. |
+| `onEvent(Closure(VideoEventKind, array) $handler)` | Native events. |
+| `toElement(): Element` | A `CustomView` of kind `video.player`; style it to give it a size. |
 
-All coded states, kinds, and variants are sequential integer-backed enums. Use enum cases in application code; do not depend on raw wire numbers.
+### Events
+
+| `VideoEventKind` | Payload keys |
+| --- | --- |
+| `State = 1` | `state` (`VideoPlaybackState` value) |
+| `Progress = 2` | `positionMillis`, `durationMillis`, `bufferedMillis` |
+| `Error = 3` | `state` (`Failed`), `message` |
+| `Tracks = 4` | Reserved; not emitted by 0.4 |
+
+`VideoPlaybackState`: `Idle = 1`, `Buffering = 2`, `Ready = 3`, `Ended = 4`,
+`Failed = 5`. Convert with `VideoPlaybackState::tryFrom((int) $event['state'])`.
+
+### `VideoDrmConfiguration` (readonly)
+
+`(VideoDrmScheme $scheme, string $licenseUrl, string $authorization = '', string $contentId = '', string $certificateUrl = '', bool $multiSession = false)`;
+`properties()`. License and certificate URLs must be HTTPS; FairPlay needs
+`contentId` and `certificateUrl`; `authorization` ≤ 8192 bytes, `contentId`
+≤ 2048. `VideoDrmScheme`: `Widevine = 1`, `FairPlay = 2`, `ClearKey = 3`
+(Widevine/ClearKey on Android, FairPlay on iOS).
+
+### Errors
+
+`InvalidArgumentException` for non-HTTPS URLs, empty or oversized sources and
+DRM configurations that break the rules above. Playback problems (network,
+codec, DRM, unsupported scheme on a platform) arrive as `Error` events with a
+message; a repeated error for the same request is reported once.
 
 ## Production checklist
 
@@ -130,6 +186,11 @@ All coded states, kinds, and variants are sequential integer-backed enums. Use e
 - **Native integration is stale:** run `pam doctor --fix`, rebuild the native host, and inspect the first reported diagnostic.
 
 ## Compatibility and support
+
+| `pushinbr/pam-native-video` | `pushinbr/pam-native` | Android | iOS |
+| --- | --- | --- | --- |
+| 0.4.x | `>=0.8.0 <2.0.0` (tested with 1.14.x) | API 26+, Media3 1.9.3 | 15+, external subtitles |
+| 0.3.x | `>=0.8.0 <1.0.0` | API 26+ | 15+, no external subtitles |
 
 This package targets PAM Native `0.8–1.x`, Android API 26+, and iOS 15+ unless a platform-specific section above states a stricter requirement. Platform SDKs, credentials, entitlements, physical hardware, and store configuration remain application responsibilities.
 
