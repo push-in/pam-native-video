@@ -1,64 +1,37 @@
-<!-- pam:product-page:start -->
 <div align="center">
 
-# PAM Native Video
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/banner-dark.svg">
+  <img src=".github/assets/banner-light.svg" width="880" alt="pam-native-video: Adaptive HLS/DASH streaming, subtitles and DRM with native Media3 and AVPlayer playback.">
+</picture>
 
-**Adaptive streaming and native playback for serious media apps.**
+**Adaptive streaming and native playback for serious media apps.**<br>
+Play HLS on iOS, HLS/DASH on Android, subtitles, tracks and DRM-protected sources while decode and rendering stay native.
 
-Play HLS on iOS, HLS/DASH on Android, subtitles, tracks, DRM-ready sources, and picture-in-picture while decode and rendering stay native.
+[![Packagist](https://img.shields.io/packagist/v/pushinbr/pam-native-video?label=packagist&color=f53003)](https://packagist.org/packages/pushinbr/pam-native-video)
+[![Latest release](https://img.shields.io/github/v/release/push-in/pam-native-video?label=release&color=e3a008)](https://github.com/push-in/pam-native-video/releases/latest)
+![PHP 8.5](https://img.shields.io/badge/php-8.5-777bb4)
+[![CI](https://img.shields.io/github/actions/workflow/status/push-in/pam-native-video/ci.yml?branch=main&label=ci)](https://github.com/push-in/pam-native-video/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/push-in/pam-native-video?color=1f6feb)](LICENSE)
 
-[![Latest version](https://img.shields.io/packagist/v/pushinbr/pam-native-video?style=flat-square&label=stable)](https://packagist.org/packages/pushinbr/pam-native-video)
-[![CI](https://img.shields.io/github/actions/workflow/status/push-in/pam-native-video/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/push-in/pam-native-video/actions)
-![PHP](https://img.shields.io/badge/PHP-8.5-777BB4?style=flat-square&logo=php&logoColor=white)
-![Android](https://img.shields.io/badge/Android-API%2026%2B-3DDC84?style=flat-square&logo=android&logoColor=white)
-![iOS](https://img.shields.io/badge/iOS-15%2B-000000?style=flat-square&logo=apple&logoColor=white)
-
-**[Documentation](https://push-in.github.io/pam-docs/native/overview/) · [Quick start](#quick-start) · [What you can build](#what-you-can-build) · [PAM ecosystem](https://push-in.github.io/pam-docs/ecosystem/) · [Issues](https://github.com/push-in/pam-native-video/issues)**
+[Install](#install) · [Quick example](#quick-example) · [Platforms](#platform-support) · [DRM](#protected-playback) · [API](docs/api-reference.md) · [Issues](https://github.com/push-in/pam-native-video/issues)
 
 </div>
 
----
+<a id="install"></a>
+## <picture><img src=".github/assets/icons/terminal.svg" width="22" height="22" alt=""></picture> Install
 
-## Why PAM Native Video
+Inside a PAM Native project, add only this capability:
 
-Play HLS on iOS, HLS/DASH on Android, subtitles, tracks, DRM-ready sources, and picture-in-picture while decode and rendering stay native. The public API is strictly typed for PHP 8.5; expensive or frame-sensitive work stays in Rust or the platform SDK instead of crossing the application boundary every frame.
-
-| | |
-| --- | --- |
-| **Best for** | A focused capability you can add to any PAM Native application |
-| **Native path** | Android Media3 · AVPlayer |
-| **Application model** | Composer package + generated native integration |
-| **Design rule** | Independent module; no feed, vertical, or application template bundled |
-
-## What you can build
-
-- Streaming and IPTV applications
-- Social and editorial video
-- Offline-aware playback with native controls and subtitles
-
-## Quick start
-
-Already have a PAM Native project? Add only this capability:
-
-```bash
+```sh
 pam composer require pushinbr/pam-native-video
 pam doctor --fix
 ```
 
-New to PAM? Follow the **[five-minute PAM Native setup](https://push-in.github.io/pam-docs/native/overview/)** once, then return here. Your application stays a normal Composer project with a committed lockfile.
-<!-- pam:product-page:end -->
+New to PAM? Create a project with `pam init my-app --template native` (see the [PAM Native overview](https://push-in.github.io/pam-docs/native/overview/)), then come back here. See [what installation does](#requirements).
 
-## See it in action
-
-This package is a horizontal playback primitive. It does not install a feed, social network, or
-streaming application template.
-
-Adaptive HLS and local video playback through Android Media3 and Apple AVPlayer; Android also supports DASH. Decoder, buffering, controls and progress timing remain native rather than crossing the PHP bridge per frame.
-
-```bash
-pam composer require pushinbr/pam-native-video
-pam doctor --fix
-```
+<a id="quick-example"></a>
+## <picture><img src=".github/assets/icons/code.svg" width="22" height="22" alt=""></picture> Quick example
 
 ```php
 use Pam\Native\Video\VideoEventKind;
@@ -73,6 +46,43 @@ return VideoPlayer::make('https://cdn.example.com/master.m3u8')
         // Progress: $event['positionMillis'], ['durationMillis'], ['bufferedMillis'].
     });
 ```
+
+Decoder, buffering, controls and progress timing remain native rather than crossing the PHP bridge per frame. This package is a horizontal playback primitive: it does not install a feed, social network or streaming application template. A runnable app lives in [`example/`](example/).
+
+<a id="platform-support"></a>
+## <picture><img src=".github/assets/icons/grid.svg" width="22" height="22" alt=""></picture> Platform support
+
+| Platform | Support | Notes |
+| --- | --- | --- |
+| Android | API 26+ | Media3 1.9.3 (ExoPlayer, DASH, HLS, UI); HLS, DASH, Widevine, ClearKey |
+| iOS | 15.0+ | AVFoundation, AVKit; HLS, FairPlay |
+| PAM Native | 0.8.0 to < 2.0.0 | From `pam-native.plugin.json`; PHP 8.5+ |
+
+<a id="requirements"></a>
+## <picture><img src=".github/assets/icons/shield.svg" width="22" height="22" alt=""></picture> What installation does
+
+`pam composer require pushinbr/pam-native-video` installs the package through the project's normal `composer.json` and `composer.lock`. Run `pam doctor --fix` afterward to validate the environment and regenerate native integration when required. The package is a PAM Native plugin with one native view (`video.player`); nothing is added to `pam-native.json`.
+
+Use `pam packages` to inspect direct installed Composer dependencies and `pam composer remove pushinbr/pam-native-video` to uninstall the capability.
+
+- **Android:** no permissions besides network access. Dependencies: `androidx.media3:media3-exoplayer`, `-exoplayer-dash`, `-exoplayer-hls` and `-ui` `1.9.3`. When `pam-native-media`, `pam-native-audio` or `pam-native-media-editor` (Media3 `1.10.1`) are installed too, Gradle resolves every Media3 artifact to the newest requested version.
+- **iOS:** frameworks `AVFoundation` and `AVKit`; no Info.plist keys. FairPlay needs a certificate and license server of your own.
+
+<a id="what-you-can-build"></a>
+## <picture><img src=".github/assets/icons/sparkle.svg" width="22" height="22" alt=""></picture> What you can build
+
+- Streaming and IPTV applications
+- Social and editorial video
+- Offline-aware playback with native controls and subtitles
+
+| | |
+| --- | --- |
+| **Native path** | Android Media3 · AVPlayer |
+| **Application model** | Composer package + generated native integration |
+| **Design rule** | Independent module; no feed, vertical or application template bundled |
+
+<a id="protected-playback"></a>
+## <picture><img src=".github/assets/icons/shield.svg" width="22" height="22" alt=""></picture> Protected playback
 
 Protected playback supports Widevine and ClearKey on Android and FairPlay on iOS. An incompatible DRM scheme produces a native playback error instead of silently playing without DRM. License exchange runs inside the native player; credentials should be short-lived.
 
@@ -94,109 +104,67 @@ return VideoPlayer::make('https://cdn.example.com/movie/master.m3u8')
     ->autoPlay();
 ```
 
-Features include adaptive HLS playback, embedded subtitle/audio tracks, native controls, autoplay, looping, mute/volume, deterministic seek commands, configurable progress events and sandboxed local files. Android also supports DASH. External WebVTT, SRT and TTML subtitles are supported on both platforms; iOS loads at most 2 MiB and displays them in the AVKit content overlay. Embedded subtitles retain the platform's native track selection. Android dependencies are pinned to Media3 `1.9.3`; iOS uses AVFoundation/AVKit.
+<a id="features"></a>
+## <picture><img src=".github/assets/icons/video.svg" width="22" height="22" alt=""></picture> Features
+
+Adaptive HLS playback, embedded subtitle/audio tracks, native controls, autoplay, looping, mute/volume, deterministic seek commands, configurable progress events and sandboxed local files. Android also supports DASH. External WebVTT, SRT and TTML subtitles are supported on both platforms; iOS loads at most 2 MiB and displays them in the AVKit content overlay. Embedded subtitles retain the platform's native track selection.
+
+Every `VideoPlayer` method, event payload, DRM rule and error: [docs/api-reference.md](docs/api-reference.md).
 
 On macOS, run the focused subtitle, time and sandbox checks with `swiftc ios/Sources/ExternalSubtitles.swift ios/Sources/VideoSafety.swift tests/ios-subtitles/main.swift -o /tmp/pam-video-ios-check && /tmp/pam-video-ios-check`.
 
-Platform support: Android API 26+, iOS 15+, PAM Native 0.8–1.x.
+<a id="when-to-use-it"></a>
+## <picture><img src=".github/assets/icons/eye.svg" width="22" height="22" alt=""></picture> When to use it
 
-## What installation does
+The PAM Native core already ships `<MediaPlayer>` (`Pam\Native\UI\MediaPlayer`) for feed, story and chat media; Zé Chat plays its gallery, story and editor videos with it. Add this package when you need what the core player does not do: DRM (Widevine, ClearKey, FairPlay), DASH on Android, external WebVTT/SRT/TTML subtitles, bitrate caps, forward-buffer tuning and native transport controls.
 
-`pam composer require pushinbr/pam-native-video` installs the package through the project's normal `composer.json` and `composer.lock`. Run `pam doctor --fix` afterward to validate the environment and regenerate native integration when required. The package is a PAM Native plugin with one native view (`video.player`); nothing is added to `pam-native.json`.
-
-Use `pam packages` to inspect direct installed Composer dependencies and `pam composer remove pushinbr/pam-native-video` to uninstall the capability.
-
-- **Android:** no permissions besides network access. Dependencies:
-  `androidx.media3:media3-exoplayer`, `-exoplayer-dash`, `-exoplayer-hls` and
-  `-ui` `1.9.3`. When `pam-native-media`, `pam-native-audio` or
-  `pam-native-media-editor` (Media3 `1.10.1`) are installed too, Gradle
-  resolves every Media3 artifact to the newest requested version.
-- **iOS:** frameworks `AVFoundation` and `AVKit`; no Info.plist keys. FairPlay
-  needs a certificate and license server of your own.
-
-## When to use it
-
-The PAM Native core already ships `<MediaPlayer>` (`Pam\Native\UI\MediaPlayer`)
-for feed, story and chat media; Zé Chat plays its gallery, story and editor
-videos with it. Add this package when you need what the core player does not
-do: DRM (Widevine, ClearKey, FairPlay), DASH on Android, external WebVTT/SRT/
-TTML subtitles, bitrate caps, forward-buffer tuning and native transport
-controls.
-
-## API reference
-
-All classes live in `Pam\Native\Video`.
-
-### `VideoPlayer` (`Renderable`, immutable)
-
-| Method | Description |
-| --- | --- |
-| `make(string $source)` | HTTPS URL (HLS, DASH on Android, progressive) or a relative sandbox path. |
-| `autoPlay(bool = true)`, `controls(bool = true)` (default on), `loop(bool = true)`, `muted(bool = true)`, `volume(float)` (0–1) | Playback. |
-| `seekTo(int $milliseconds)` | Seek command; a new value seeks once (keep it in state, do not recompute it every render). |
-| `resizeMode(VideoResizeMode)` | `Contain` (default), `Cover`, `Fill`. |
-| `progressEvery(int $milliseconds)` | Progress event interval, 100–10000 ms (default 500). |
-| `playbackRate(float)` | 0.25–4. |
-| `preferredPeakBitRate(int $bitsPerSecond)`, `preferredForwardBuffer(int $milliseconds)` (0–120000) | Adaptive streaming hints. |
-| `subtitle(string $source)` | External WebVTT, SRT or TTML (HTTPS or sandbox path). |
-| `drm(VideoDrmConfiguration)` | Protected playback. |
-| `onEvent(Closure(VideoEventKind, array) $handler)` | Native events. |
-| `toElement(): Element` | A `CustomView` of kind `video.player`; style it to give it a size. |
-
-### Events
-
-| `VideoEventKind` | Payload keys |
-| --- | --- |
-| `State = 1` | `state` (`VideoPlaybackState` value) |
-| `Progress = 2` | `positionMillis`, `durationMillis`, `bufferedMillis` |
-| `Error = 3` | `state` (`Failed`), `message` |
-| `Tracks = 4` | Reserved; not emitted by 0.4 |
-
-`VideoPlaybackState`: `Idle = 1`, `Buffering = 2`, `Ready = 3`, `Ended = 4`,
-`Failed = 5`. Convert with `VideoPlaybackState::tryFrom((int) $event['state'])`.
-
-### `VideoDrmConfiguration` (readonly)
-
-`(VideoDrmScheme $scheme, string $licenseUrl, string $authorization = '', string $contentId = '', string $certificateUrl = '', bool $multiSession = false)`;
-`properties()`. License and certificate URLs must be HTTPS; FairPlay needs
-`contentId` and `certificateUrl`; `authorization` ≤ 8192 bytes, `contentId`
-≤ 2048. `VideoDrmScheme`: `Widevine = 1`, `FairPlay = 2`, `ClearKey = 3`
-(Widevine/ClearKey on Android, FairPlay on iOS).
-
-### Errors
-
-`InvalidArgumentException` for non-HTTPS URLs, empty or oversized sources and
-DRM configurations that break the rules above. Playback problems (network,
-codec, DRM, unsupported scheme on a platform) arrive as `Error` events with a
-message; a repeated error for the same request is reported once.
-
-## Production checklist
+<a id="production-checklist"></a>
+## <picture><img src=".github/assets/icons/shield.svg" width="22" height="22" alt=""></picture> Production checklist
 
 - Prefer adaptive HLS for both platforms; use DASH only for Android.
 - Keep progress intervals coarse enough for the product experience.
 - Pause or release playback when the owning screen loses visibility.
 - Run `pam doctor`, `pam test`, and a signed release build on every supported platform.
-- Exercise denial, cancellation, backgrounding, process restart, and offline behavior before release.
+- Exercise denial, cancellation, backgrounding, process restart and offline behavior before release.
 
-## Troubleshooting
+<a id="troubleshooting"></a>
+## <picture><img src=".github/assets/icons/bug.svg" width="22" height="22" alt=""></picture> Troubleshooting
 
-- **Remote playback fails:** verify HTTPS, codec, manifest, and segment accessibility.
+- **Remote playback fails:** verify HTTPS, codec, manifest and segment accessibility.
 - **Seek appears ignored:** issue it as an intentional state revision, not every render.
 - **Subtitles are absent:** inspect the embedded track, or check the external subtitle URL, format and 2 MiB iOS size limit.
 - **Native integration is stale:** run `pam doctor --fix`, rebuild the native host, and inspect the first reported diagnostic.
 
-## Compatibility and support
+<a id="compatibility"></a>
+## <picture><img src=".github/assets/icons/layers.svg" width="22" height="22" alt=""></picture> Compatibility
 
 | `pushinbr/pam-native-video` | `pushinbr/pam-native` | Android | iOS |
 | --- | --- | --- | --- |
 | 0.4.x | `>=0.8.0 <2.0.0` (tested with 1.14.x) | API 26+, Media3 1.9.3 | 15+, external subtitles |
 | 0.3.x | `>=0.8.0 <1.0.0` | API 26+ | 15+, no external subtitles |
 
-This package targets PAM Native `0.8–1.x`, Android API 26+, and iOS 15+ unless a platform-specific section above states a stricter requirement. Platform SDKs, credentials, entitlements, physical hardware, and store configuration remain application responsibilities.
+Platform SDKs, credentials, entitlements, physical hardware and store configuration remain application responsibilities. Report security vulnerabilities through the repository security policy or GitHub private vulnerability reporting, not a public issue.
 
-- [PAM documentation](https://push-in.github.io/pam-docs/introduction/)
+<a id="docs"></a>
+## <picture><img src=".github/assets/icons/book.svg" width="22" height="22" alt=""></picture> Docs
+
+- [API reference](docs/api-reference.md)
+- [Example app](example/)
 - [PAM Native overview](https://push-in.github.io/pam-docs/native/overview/)
 - [Plugin and native capability model](https://push-in.github.io/pam-docs/native/plugins/)
+- [PAM documentation](https://push-in.github.io/pam-docs/introduction/)
+- [Changelog](CHANGELOG.md)
 - [Report an issue](https://github.com/push-in/pam-native-video/issues)
 
-Security vulnerabilities should be reported through the repository security policy or GitHub private vulnerability reporting, not a public issue.
+<a id="pam-ecosystem"></a>
+## <picture><img src=".github/assets/icons/plug.svg" width="22" height="22" alt=""></picture> Part of the PAM ecosystem
+
+PAM runs PHP natively on servers, desktops and phones. This repository is one piece of it.
+
+| [**PAM**](https://github.com/push-in/pam) | [**PAM Desktop**](https://github.com/push-in/pam-desktop) | [**PAM Native**](https://github.com/push-in/pam-native) | [**Ecosystem**](https://github.com/push-in/pam#ecosystem) |
+| --- | --- | --- | --- |
+| the runtime and CLI | native desktop apps in PHP | native Android and iOS apps in PHP | every official package and plugin |
+
+<sub>Docs: [push-in.github.io/pam-docs](https://push-in.github.io/pam-docs/introduction/) · [Issues](https://github.com/push-in/pam-native-video/issues)</sub>
+
+<p align="center"><sub><a href="LICENSE">Apache License 2.0</a> · Made in Brazil by Pushin</sub></p>
