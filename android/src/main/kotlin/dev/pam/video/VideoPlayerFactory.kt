@@ -7,6 +7,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
 import androidx.media3.common.C
+import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
@@ -16,7 +17,9 @@ import dev.pam.nativeapp.protocol.WireValue
 import dev.pam.nativeapp.views.NativeViewFactory
 import java.io.File
 
-@UnstableApi
+// Media3's unstable APIs are an implementation detail of the player: opting in
+// here keeps the requirement from leaking to apps that register the factory.
+@OptIn(UnstableApi::class)
 class VideoPlayerFactory(private val applicationContext: Context) : NativeViewFactory {
     override fun create(context: Context, emit: (ByteArray) -> Unit): View = PamVideoView(context, emit)
 
