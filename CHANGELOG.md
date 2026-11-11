@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.1 - 2026-11-11
+
+- Android: `VideoPlayerFactory` opts in to Media3's unstable APIs itself
+  (`@OptIn(UnstableApi::class)`) instead of being annotated `@UnstableApi`,
+  so apps that register the player no longer fail Android lint with
+  `UnsafeOptInUsageError` in the generated view registry.
+
 ## 0.4.0 - 2026-10-04
 
 - Render external WebVTT, SRT and TTML subtitles on iOS through the AVKit content overlay. Subtitle loading is asynchronous, cancellable, and limited to 2 MiB, 10,000 cues and 2,048 UTF-8 bytes per TTML cue.
